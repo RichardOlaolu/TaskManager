@@ -48,7 +48,7 @@ class TaskPolicy
             return true;
         }
 
-        switch ($task->created_by_role) {
+        switch ($task->creator->role) {
             case Role::Admin:
                 return $user->role === Role::Admin && $user->id === $task->created_by;
 
@@ -73,14 +73,17 @@ public function delete(User $user, Task $task): bool
     }
 
     // User is NOT the creator - check based on roles
-    switch ($task->created_by_role) {
+    switch ($task->creator->role) {
             case Role::Admin:
             // Only the specific admin who created it can delete
             return false;
 
         case Role::Lead:
-            // Leads: only the specific lead OR any admin can delete
-            return $user->role === Role::Admin;
+    // Leads: can delete any task not created by an admin or another lead
+    return $user->role === Role::Admin ||
+           ($task->creator &&
+            $task->creator->role !== Role::Admin &&
+            $task->creator->role !== Role::Lead);
 
         case Role::Member:
             // Members: admins and leads can delete member tasks
