@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Enums\Role;
 
 class UserPolicy
 {
@@ -12,7 +13,7 @@ class UserPolicy
     public function viewAny(User $user): bool
     {
         // Only admins can view the user list
-        return $user->role === 'admin';
+        return $user->role === Role::Admin;
     }
 
     /**
@@ -21,7 +22,7 @@ class UserPolicy
     public function view(User $authUser, User $user): bool
     {
         // Allow admins to view any user, others can only view their own profile
-        return $authUser->role === 'admin' || $authUser->id === $user->id;
+        return $authUser->role === Role::Admin || $authUser->id === $user->id;
     }
 
     /**
@@ -30,7 +31,7 @@ class UserPolicy
     public function create(User $user): bool
     {
         // Only admins can create users
-        return $user->role === 'admin';
+        return $user->role === Role::Admin;
     }
 
     /**
@@ -39,7 +40,7 @@ class UserPolicy
     public function update(User $authUser, User $user): bool
     {
         // Allow admins to update any user, others can only update their own profile
-        return $authUser->role === 'admin' || $authUser->id === $user->id;
+        return $authUser->role === Role::Admin || $authUser->id === $user->id;
     }
 
     /**
@@ -48,6 +49,6 @@ class UserPolicy
     public function delete(User $authUser, User $user): bool
     {
         // Only admins can delete users
-        return $authUser->role === 'admin';
+        return $authUser->role === Role::Admin;
     }
 }

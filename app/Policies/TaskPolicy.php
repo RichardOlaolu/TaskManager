@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Enums\Role;
 
 class TaskPolicy
 {
@@ -12,24 +13,25 @@ class TaskPolicy
      */
     public function update(User $user, Task $task): bool
     {
+
         // User is always allowed to update their own task
         if ($user->id === $task->created_by) {
             return true;
         }
 
         // User is NOT the creator - check based on roles
-        switch ($task->created_by_role) {
-            case 'admin':
+        switch ($task->creator->role) {
+            case Role::Admin:
                 // Only the specific admin who created it can update
                 return false;
 
-            case 'lead':
+            case Role::Lead:
                 // Leads: only the specific lead OR any admin can update
-                return $user->role === 'admin';
+                return $user->role === Role::Admin;
 
-            case 'member':
+            case Role::Member:
                 // Members: admins and leads can update member tasks
-                return in_array($user->role, ['admin', 'lead']);
+                return in_array($user->role, [Role::Admin, Role::Lead]);
         }
 
         return false;
@@ -47,14 +49,13 @@ class TaskPolicy
         }
 
         switch ($task->created_by_role) {
-            case 'admin':
-                return $user->role === 'admin' && $user->id === $task->created_by;
+            case Role::Admin:
+                return $user->role === Role::Admin && $user->id === $task->created_by;
 
-            case 'lead':
-                return in_array($user->role, ['admin', 'lead']);
-
-            case 'member':
-                return in_array($user->role, ['admin', 'lead']);
+            case Role::Lead:
+                return in_array($user->role, [Role::Admin, Role::Lead]);
+            case Role::Member:
+                return in_array($user->role, [Role::Admin, Role::Lead]);
         }
 
         return false;
@@ -73,17 +74,17 @@ public function delete(User $user, Task $task): bool
 
     // User is NOT the creator - check based on roles
     switch ($task->created_by_role) {
-        case 'admin':
+            case Role::Admin:
             // Only the specific admin who created it can delete
             return false;
 
-        case 'lead':
+        case Role::Lead:
             // Leads: only the specific lead OR any admin can delete
-            return $user->role === 'admin';
+            return $user->role === Role::Admin;
 
-        case 'member':
+        case Role::Member:
             // Members: admins and leads can delete member tasks
-            return in_array($user->role, ['admin', 'lead']);
+            return in_array($user->role, [Role::Admin, Role::Lead]);
     }
 
     return false;
