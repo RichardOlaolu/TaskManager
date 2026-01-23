@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 //use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Enums\Role;
+use App\Enums\Priority;
 
 class StoreTaskRequest extends FormRequest
 {
@@ -29,9 +30,9 @@ class StoreTaskRequest extends FormRequest
     {
         // Set high priority for admin-created tasks
         $user = $this->user();
-        if ($user && $user->role === Role::Admin) {
-            $this->merge(['priority' => 'high']);
-        }
+if ($user && $user->role === Role::Admin && !$this->has('priority')) {
+    $this->merge(['priority' => Priority::HIGH]);
+}
     }
 
     public function messages(): array
