@@ -2,52 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
-
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Http\Requests\IndexUserRequest;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\ViewUserRequest;
+use App\Http\Requests\UpdateUserRequest;
+use App\Http\Requests\DeleteUserRequest;
 
 class UserController extends Controller
 {
-    use AuthorizesRequests;
-    public function index()
+    /**
+     * Display a listing of users.
+     */
+    public function index(IndexUserRequest $request)
     {
-        try {
-            $this->authorize('viewAny', User::class);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'message' => 'Only administrators can view all users',
-                'error' => 'Unauthorized'
-            ], 403);
-        }
-
         $users = User::all();
 
         return response()->json($users);
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created user.
+     */
+    public function store(StoreUserRequest $request)
     {
-        try {
-            $this->authorize('create', User::class);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'message' => 'Only administrators can create users',
-                'error' => 'Unauthorized'
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'sometimes|string|in:admin,lead,member',
-        ]);
-
-        // Default role if not specified
-        if (!isset($validated['role'])) {
-            $validated['role'] = 'member';
-        }
+        $validated = $request->validated();
 
         $user = User::create([
             'name' => $validated['name'],
@@ -62,41 +41,23 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function show($id)
+    /**
+     * Display the specified user.
+     */
+    public function show(ViewUserRequest $request, $id)
     {
         $user = User::findOrFail($id);
-
-        try {
-            $this->authorize('view', $user);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You can only view your own profile',
-                'error' => 'Unauthorized'
-            ], 403);
-        }
 
         return response()->json($user);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Update the specified user.
+     */
+    public function update(UpdateUserRequest $request, $id)
     {
         $user = User::findOrFail($id);
-
-        try {
-            $this->authorize('update', $user);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You can only update your own profile',
-                'error' => 'Unauthorized'
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'sometimes|string|min:8|confirmed',
-            'role' => 'sometimes|string|in:admin,lead,member',
-        ]);
+        $validated = $request->validated();
 
         if (isset($validated['password'])) {
             $validated['password'] = bcrypt($validated['password']);
@@ -110,19 +71,12 @@ class UserController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    /**
+     * Remove the specified user.
+     */
+    public function destroy(DeleteUserRequest $request, $id)
     {
         $user = User::findOrFail($id);
-
-        try {
-            $this->authorize('delete', $user);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return response()->json([
-                'message' => 'Only administrators can delete users',
-                'error' => 'Unauthorized'
-            ], 403);
-        }
-
         $user->delete();
 
         return response()->json([

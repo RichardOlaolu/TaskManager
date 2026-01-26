@@ -5,34 +5,25 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Task;
-use App\Models\User;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
+use App\Enums\Role;
 
 class TaskController extends Controller
 {
     use AuthorizesRequests;
+
     public function index()
     {
         $tasks = Task::all();
         return response()->json($tasks);
     }
 
-    public function store(Request $request)
+    public function store(StoreTaskRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'priority' => 'nullable|in:low,medium,high',
-            'due_date' => 'nullable|date_format:Y-m-d',
-        ]);
+        $validated = $request->validated();
+        $validated['created_by'] = $request->user()->id;
 
-        $user = $request->user();
-
-        // Set high priority for admin-created tasks
-        if ($user->role === 'admin') {
-            $validated['priority'] = 'high';
-        }
-
-        $validated['created_by'] = $user->id;
         $task = Task::create($validated);
 
         return response()->json([
@@ -44,44 +35,49 @@ class TaskController extends Controller
     public function show($id)
     {
         $task = Task::findOrFail($id);
+
+        // Policy will automatically check view permission via middleware
+        $this->authorize('view', $task);
+
         return response()->json($task);
     }
 
-    public function update(Request $request, $id)
-{
-    $task = Task::findOrFail($id);
+    public function update(UpdateTaskRequest $request, $id)
+    {
+        $task = Task::findOrFail($id);
+        $validated = $request->validated();
 
-    // Laravel will automatically throw AuthorizationException
-    $this->authorize('update', $task);
+        // Policy will automatically check update permission
+        $this->authorize('update', $task);
 
-    $validated = $request->validate([
-        'title' => 'sometimes|required|string|max:255',
-        'description' => 'sometimes|nullable|string',
-        'due_date' => 'sometimes|nullable|date_format:Y-m-d',
-    ]);
+        $task->update($validated);
 
-    $task->update($validated);
-
-    return response()->json([
-        'message' => 'Task updated successfully',
-        'task' => $task,
-    ]);
-}
+        return response()->json([
+            'message' => 'Task updated successfully',
+            'task' => $task,
+        ]);
+    }
 
     public function destroy(Request $request, $id)
     {
         $task = Task::findOrFail($id);
-       $user = $request->user();
 
+        // Policy will automatically check delete permission
+        $this->authorize('delete', $task);
+
+        // Additional business logic from your original controller
+        $user = $request->user();
+
+        // Note: This logic should be moved to the TaskPolicy::delete method
         // Only admins can delete admin-created tasks
-        if ($task->created_by_role === 'admin' && $user->role !== 'admin') {
+        if ($task->created_by_role === Role::Admin && $user->role !== Role::Admin) {
             return response()->json([
                 'message' => 'Unauthorized: Only admins can delete admin tasks',
             ], 403);
         }
 
         // Only team leaders and admins can delete tasks
-        if (!in_array($user->role, ['admin', 'lead'])) {
+        if (!in_array($user->role, [Role::Admin, Role::Lead])) {
             return response()->json([
                 'message' => 'Unauthorized: Only team leaders and admins can delete tasks',
             ], 403);

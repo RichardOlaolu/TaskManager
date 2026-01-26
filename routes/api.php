@@ -20,21 +20,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
     });
 
-    // User routes
-    Route::prefix('users')->group(function () {
-        Route::get('/', [UserController::class, 'index']);
-        Route::post('/', [UserController::class, 'store']);
-        Route::get('/{id}', [UserController::class, 'show']);
-        Route::put('/{id}', [UserController::class, 'update']);
-        Route::delete('/{id}', [UserController::class, 'destroy']);
-    });
+    // API Resource Routes - Cleaner and more maintainable
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('tasks', TaskController::class);
 
-    // Task routes
-    Route::prefix('tasks')->group(function () {
-        Route::get('/', [TaskController::class, 'index']);
-        Route::post('/', [TaskController::class, 'store']);
-        Route::get('/{id}', [TaskController::class, 'show']);
-        Route::put('/{id}', [TaskController::class, 'update']);
-        Route::delete('/{id}', [TaskController::class, 'destroy']);
-    });
+
 });
